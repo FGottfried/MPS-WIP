@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.venv/
+results/*
+!results/logs/
+!results/metrics/
+!results/models/
+!results/logs/.gitkeep
+!results/metrics/.gitkeep
+!results/models/.gitkeep
+data/

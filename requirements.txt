@@ -1,0 +1,5 @@
+torch
+torchvision
+pennylane
+matplotlib
+numpy
