@@ -18,10 +18,14 @@ it will:
 
 - `run_mps_knn_sweep.py`: core sweep module.
 - `run_mps_knn_from_config.py`: JSON-driven runner with `sanity`/`full` modes.
+- `run_mps_knn_one_from_config.py`: runs exactly one `(n_qubits, bond_dim)` job.
 - `visualize_knn_sweep.py`: visualization script for CSV sweep results.
 - `mps_embedding_config.json`: experiment config (including sanity-check subsets).
 - `requirements.txt`: Python dependencies.
-- `scripts/job.slurm`: SLURM template for remote execution.
+- `scripts/job.slurm`: SLURM array worker (one combo per task).
+- `scripts/prepare_pending_jobs.py`: creates pending job list by skipping completed runs.
+- `scripts/submit_remaining.sh`: submits only remaining jobs (resumable workflow).
+- `scripts/aggregate_metrics.py`: merges per-run metric JSONs into one CSV.
 - `results/`: output root.
 
 ## Setup
@@ -33,27 +37,36 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-## Run sanity check first (2x2)
+## Local single-process mode
 
 ```bash
 python run_mps_knn_from_config.py --config mps_embedding_config.json --mode sanity
 ```
 
-This writes to:
-- `sanity_check/results/metrics/knn_sweep_results.csv`
-- `sanity_check/results/logs/`
-- `sanity_check/results/models/`
-
-## Run full sweep
-
 ```bash
 python run_mps_knn_from_config.py --config mps_embedding_config.json --mode full
 ```
 
-This writes to:
-- `full_sweep/results/metrics/knn_sweep_results.csv`
-- `full_sweep/results/logs/`
-- `full_sweep/results/models/`
+## Recommended SLURM mode (many small resumable jobs)
+
+Sanity set (2x2):
+```bash
+./scripts/submit_remaining.sh sanity mps_embedding_config.json
+```
+
+Full set:
+```bash
+./scripts/submit_remaining.sh full mps_embedding_config.json
+```
+
+If jobs are interrupted, run the same command again.  
+Only unfinished combinations are submitted.
+
+After jobs finish, aggregate per-run metrics:
+```bash
+python scripts/aggregate_metrics.py --mode-dir sanity_check
+python scripts/aggregate_metrics.py --mode-dir full_sweep
+```
 
 ## Visualize results
 

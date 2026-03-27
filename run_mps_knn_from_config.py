@@ -40,6 +40,25 @@ def sweep_config_from_json(raw: dict) -> SweepConfig:
     )
 
 
+def mode_settings(raw: dict, mode: str) -> tuple[List[int], List[int], str]:
+    full_bond_dims = _as_int_list(raw.get("bond_dims", DEFAULT_BOND_DIMS))
+    full_n_qubits = _as_int_list(raw.get("n_qubits", DEFAULT_N_QUBITS))
+
+    if mode == "sanity":
+        sanity = raw.get("sanity_check", {})
+        bond_dims = _as_int_list(sanity.get("bond_dims", full_bond_dims[:2]))
+        n_qubits = _as_int_list(sanity.get("n_qubits", full_n_qubits[:2]))
+        out_subdir = "sanity_check"
+    elif mode == "full":
+        bond_dims = full_bond_dims
+        n_qubits = full_n_qubits
+        out_subdir = "full_sweep"
+    else:
+        raise ValueError(f"Unsupported mode: {mode}")
+
+    return bond_dims, n_qubits, out_subdir
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run MNIST MPS kNN sweep from JSON config")
     parser.add_argument("--config", type=Path, default=Path("mps_embedding_config.json"))
@@ -48,23 +67,11 @@ def main() -> None:
 
     raw = load_config(args.config)
     cfg = sweep_config_from_json(raw)
-
-    full_bond_dims = _as_int_list(raw.get("bond_dims", DEFAULT_BOND_DIMS))
-    full_n_qubits = _as_int_list(raw.get("n_qubits", DEFAULT_N_QUBITS))
-
+    bond_dims, n_qubits, out_subdir = mode_settings(raw, args.mode)
     base_out = Path(cfg.out_dir)
-
-    if args.mode == "sanity":
-        sanity = raw.get("sanity_check", {})
-        sanity_bond_dims = _as_int_list(sanity.get("bond_dims", full_bond_dims[:2]))
-        sanity_n_qubits = _as_int_list(sanity.get("n_qubits", full_n_qubits[:2]))
-        cfg_mode = replace(cfg, out_dir=str(base_out / "sanity_check"))
-        print(f"Running sanity sweep with n_qubits={sanity_n_qubits}, bond_dims={sanity_bond_dims}")
-        run_sweep(cfg_mode, bond_dims=sanity_bond_dims, n_qubits_list=sanity_n_qubits)
-    else:
-        cfg_mode = replace(cfg, out_dir=str(base_out / "full_sweep"))
-        print(f"Running full sweep with n_qubits={full_n_qubits}, bond_dims={full_bond_dims}")
-        run_sweep(cfg_mode, bond_dims=full_bond_dims, n_qubits_list=full_n_qubits)
+    cfg_mode = replace(cfg, out_dir=str(base_out / out_subdir))
+    print(f"Running {args.mode} sweep with n_qubits={n_qubits}, bond_dims={bond_dims}")
+    run_sweep(cfg_mode, bond_dims=bond_dims, n_qubits_list=n_qubits)
 
 
 if __name__ == "__main__":

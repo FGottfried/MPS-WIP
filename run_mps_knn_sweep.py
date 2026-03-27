@@ -324,18 +324,98 @@ def save_json(path: Path, data: Dict) -> None:
         json.dump(data, f, indent=2)
 
 
-def run_sweep(
-    cfg: SweepConfig,
-    bond_dims: Sequence[int] = DEFAULT_BOND_DIMS,
-    n_qubits_list: Sequence[int] = DEFAULT_N_QUBITS,
-) -> None:
-    out_dir = Path(cfg.out_dir)
+def prepare_output_dirs(out_dir: Path) -> Tuple[Path, Path, Path]:
     logs_dir = out_dir / "results" / "logs"
     metrics_dir = out_dir / "results" / "metrics"
     models_dir = out_dir / "results" / "models"
     logs_dir.mkdir(parents=True, exist_ok=True)
     metrics_dir.mkdir(parents=True, exist_ok=True)
     models_dir.mkdir(parents=True, exist_ok=True)
+    return logs_dir, metrics_dir, models_dir
+
+
+def run_single_combo(
+    cfg: SweepConfig,
+    x_train_flat: torch.Tensor,
+    y_train: torch.Tensor,
+    x_test_flat: torch.Tensor,
+    y_test: torch.Tensor,
+    n_qubits: int,
+    bond_dim: int,
+    out_dir: Path,
+) -> Dict[str, float]:
+    logs_dir, metrics_dir, models_dir = prepare_output_dirs(out_dir)
+    run_name = f"nq{n_qubits}_bond{bond_dim}"
+
+    qlayer = build_fidelity_qlayer(n_qubits)
+    model = FidelityMPSModel(
+        input_dim=x_train_flat.shape[1],
+        bond_dim=bond_dim,
+        n_qubits=n_qubits,
+        qlayer=qlayer,
+    )
+
+    loss_hist = train_pairwise_contrastive(model, x_train_flat, y_train, cfg, run_name=run_name)
+
+    z_train, y_train_emb = compute_embeddings(
+        model.encoder,
+        x_train_flat,
+        y_train,
+        batch_size=cfg.batch_size,
+        device=cfg.device,
+    )
+    z_test, y_test_emb = compute_embeddings(
+        model.encoder,
+        x_test_flat,
+        y_test,
+        batch_size=cfg.batch_size,
+        device=cfg.device,
+    )
+    acc = knn_accuracy(z_train, y_train_emb, z_test, y_test_emb, cfg.knn_k)
+
+    row = {
+        "n_qubits": n_qubits,
+        "bond_dim": bond_dim,
+        "train_samples": int(x_train_flat.shape[0]),
+        "test_samples": int(x_test_flat.shape[0]),
+        "num_epochs": cfg.num_epochs,
+        "batch_size": cfg.batch_size,
+        "knn_k": cfg.knn_k,
+        "knn_accuracy": float(acc),
+        "final_train_loss": float(loss_hist[-1] if len(loss_hist) > 0 else float("nan")),
+    }
+
+    run_log = {
+        "run_name": run_name,
+        "n_qubits": n_qubits,
+        "bond_dim": bond_dim,
+        "loss_history": loss_hist,
+        "knn_accuracy": float(acc),
+    }
+    save_json(logs_dir / f"{run_name}.json", run_log)
+    save_json(metrics_dir / f"{run_name}.json", row)
+
+    torch.save(
+        {
+            "encoder_state_dict": model.encoder.state_dict(),
+            "n_qubits": n_qubits,
+            "bond_dim": bond_dim,
+            "knn_accuracy": float(acc),
+        },
+        models_dir / f"{run_name}.pt",
+    )
+
+    print(f"{run_name}: kNN accuracy={acc * 100:.2f}%", flush=True)
+    return row
+
+
+def run_sweep(
+    cfg: SweepConfig,
+    bond_dims: Sequence[int] = DEFAULT_BOND_DIMS,
+    n_qubits_list: Sequence[int] = DEFAULT_N_QUBITS,
+) -> None:
+    out_dir = Path(cfg.out_dir)
+    _, metrics_dir, _ = prepare_output_dirs(out_dir)
 
     set_seed(cfg.seed)
 
@@ -371,67 +451,18 @@ def run_sweep(
                 run_idx += 1
                 run_name = f"nq{n_qubits}_bond{bond_dim}"
                 print(f"\\n=== Running {run_name} ({run_idx}/{total_runs}) ===", flush=True)
-
-                qlayer = build_fidelity_qlayer(n_qubits)
-                model = FidelityMPSModel(
-                    input_dim=x_train_flat.shape[1],
-                    bond_dim=bond_dim,
+                row = run_single_combo(
+                    cfg=cfg,
+                    x_train_flat=x_train_flat,
+                    y_train=y_train,
+                    x_test_flat=x_test_flat,
+                    y_test=y_test,
                     n_qubits=n_qubits,
-                    qlayer=qlayer,
+                    bond_dim=bond_dim,
+                    out_dir=out_dir,
                 )
-
-                loss_hist = train_pairwise_contrastive(model, x_train_flat, y_train, cfg, run_name=run_name)
-
-                z_train, y_train_emb = compute_embeddings(
-                    model.encoder,
-                    x_train_flat,
-                    y_train,
-                    batch_size=cfg.batch_size,
-                    device=cfg.device,
-                )
-                z_test, y_test_emb = compute_embeddings(
-                    model.encoder,
-                    x_test_flat,
-                    y_test,
-                    batch_size=cfg.batch_size,
-                    device=cfg.device,
-                )
-                acc = knn_accuracy(z_train, y_train_emb, z_test, y_test_emb, cfg.knn_k)
-
-                row = {
-                    "n_qubits": n_qubits,
-                    "bond_dim": bond_dim,
-                    "train_samples": int(x_train_flat.shape[0]),
-                    "test_samples": int(x_test_flat.shape[0]),
-                    "num_epochs": cfg.num_epochs,
-                    "batch_size": cfg.batch_size,
-                    "knn_k": cfg.knn_k,
-                    "knn_accuracy": float(acc),
-                    "final_train_loss": float(loss_hist[-1] if len(loss_hist) > 0 else float("nan")),
-                }
                 writer.writerow(row)
                 f_csv.flush()
-
-                run_log = {
-                    "run_name": run_name,
-                    "n_qubits": n_qubits,
-                    "bond_dim": bond_dim,
-                    "loss_history": loss_hist,
-                    "knn_accuracy": float(acc),
-                }
-                save_json(logs_dir / f"{run_name}.json", run_log)
-
-                torch.save(
-                    {
-                        "encoder_state_dict": model.encoder.state_dict(),
-                        "n_qubits": n_qubits,
-                        "bond_dim": bond_dim,
-                        "knn_accuracy": float(acc),
-                    },
-                    models_dir / f"{run_name}.pt",
-                )
-
-                print(f"{run_name}: kNN accuracy={acc * 100:.2f}%", flush=True)
 
     print(f"\\nSweep complete. Results saved in: {out_dir.resolve()}", flush=True)
 
