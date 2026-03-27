@@ -3,9 +3,11 @@ set -euo pipefail
 
 MODE=${1:-full}
 CONFIG_PATH=${2:-mps_embedding_config.json}
+PYTHON_MODULE=${3:-python/3.11.8}
+RUN_SETUP_ENV=${RUN_SETUP_ENV:-1}
 
 if [[ "${MODE}" != "full" && "${MODE}" != "sanity" ]]; then
-  echo "Usage: $0 [full|sanity] [config_path]"
+  echo "Usage: $0 [full|sanity] [config_path] [python_module]"
   exit 1
 fi
 
@@ -41,4 +43,16 @@ fi
 
 LAST=$((N - 1))
 echo "Submitting ${N} jobs as array 0-${LAST} (mode=${MODE})"
-sbatch --array=0-${LAST}%4 --export=ALL,MODE=${MODE},CONFIG_PATH=${CONFIG_PATH},PENDING_FILE=${PENDING_FILE} scripts/job.slurm
+
+DEPENDENCY_ARGS=()
+if [ "${RUN_SETUP_ENV}" = "1" ]; then
+  echo "Submitting setup_env.slurm first (RUN_SETUP_ENV=1)"
+  SETUP_JOB_ID=$(sbatch --parsable --export=ALL,PYTHON_MODULE=${PYTHON_MODULE},VENV_DIR=.venv scripts/setup_env.slurm)
+  echo "setup_env job id: ${SETUP_JOB_ID}"
+  DEPENDENCY_ARGS+=(--dependency=afterok:${SETUP_JOB_ID})
+fi
+
+sbatch "${DEPENDENCY_ARGS[@]}" \
+  --array=0-${LAST}%4 \
+  --export=ALL,MODE=${MODE},CONFIG_PATH=${CONFIG_PATH},PENDING_FILE=${PENDING_FILE},PYTHON_MODULE=${PYTHON_MODULE},VENV_DIR=.venv \
+  scripts/job.slurm

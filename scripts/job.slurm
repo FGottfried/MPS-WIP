@@ -2,7 +2,7 @@
 #SBATCH --job-name=mps-knn
 #SBATCH --output=results/logs/slurm-%A_%a.out
 #SBATCH --error=results/logs/slurm-%A_%a.err
-#SBATCH --time=24:00:00
+#SBATCH --time=01:00:00
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=32G
 #SBATCH --array=0-0
@@ -12,7 +12,7 @@ set -euo pipefail
 MODE=${MODE:-full}
 CONFIG_PATH=${CONFIG_PATH:-mps_embedding_config.json}
 PENDING_FILE=${PENDING_FILE:-}
-PYTHON_MODULE=${PYTHON_MODULE:-}
+PYTHON_MODULE=${PYTHON_MODULE:-python/3.11.8}
 VENV_DIR=${VENV_DIR:-.venv}
 
 if [ -z "${PENDING_FILE}" ]; then
