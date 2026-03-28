@@ -1,0 +1,11 @@
+{
+  "n_qubits": 10,
+  "bond_dim": 14,
+  "train_samples": 12000,
+  "test_samples": 2000,
+  "num_epochs": 5,
+  "batch_size": 64,
+  "knn_k": 5,
+  "knn_accuracy": 0.906000018119812,
+  "final_train_loss": 0.08286186955112188
+}

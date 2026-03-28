@@ -1,0 +1,12 @@
+Task 7: mode=full, n_qubits=4, bond_dim=14
+Trying to load module: python/3.11.8
+Using interpreter: /sw/ubuntu22/generic/python/3.11.8_dir/bin/python3
+Running single job: nq4_bond14 in full mode
+Loading MNIST dataset...
+[nq4_bond14] epoch 1/10 loss=0.2412
+[nq4_bond14] epoch 2/10 loss=0.2378
+[nq4_bond14] epoch 4/10 loss=0.2161
+[nq4_bond14] epoch 6/10 loss=0.2014
+[nq4_bond14] epoch 8/10 loss=0.1917
+[nq4_bond14] epoch 10/10 loss=0.1734
+nq4_bond14: kNN accuracy=74.90%

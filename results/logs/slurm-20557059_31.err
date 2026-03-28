@@ -1,0 +1,19 @@
+Module for gcc 13.1:
+(GNU C/C++/FORTRAN compilers version 13.1) - loaded.
+Module for openmpi 4.1.6:
+(OpenMPI version 4.1.6) - loaded.
+Module for hdf5 1.12.2:
+(HDF5 Library version 1.12.2) - loaded.
+Module for aws-cli 2.15.33:
+(AWS Command Line Interface version 2.15.33) - loaded.
+Module for libxc 6.2.2:
+(library of exchange-correlation functionals for density-functional theory version 6.2.2) - loaded.
+Module for python 3.11.8:
+(Python version 3.11.8) - loaded.
+
+Loading python/3.11.8
+  Loading requirement: gcc/13.1 openmpi/4.1.6-gcc13.1
+    hdf5/parallel/1.12.2-gcc13.1 aws-cli/2.15.33 libxc/6.2.2
+/data/homes/fgottfri/MPS-WIP/.venv/lib/python3.11/site-packages/autoray/autoray.py:94: UserWarning: To copy construct from a tensor, it is recommended to use sourceTensor.detach().clone() or sourceTensor.detach().clone().requires_grad_(True), rather than torch.tensor(sourceTensor).
+  return func(*args, **kwargs)
+slurmstepd: error: *** JOB 20561803 ON asterix350 CANCELLED AT 2026-03-27T19:35:44 DUE TO TIME LIMIT ***

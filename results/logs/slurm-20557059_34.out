@@ -1,0 +1,5 @@
+Task 34: mode=full, n_qubits=32, bond_dim=2
+Trying to load module: python/3.11.8
+Using interpreter: /sw/ubuntu22/generic/python/3.11.8_dir/bin/python3
+Running single job: nq32_bond2 in full mode
+Loading MNIST dataset...

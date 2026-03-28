@@ -1,0 +1,18 @@
+Module for gcc 13.1:
+(GNU C/C++/FORTRAN compilers version 13.1) - loaded.
+Module for openmpi 4.1.6:
+(OpenMPI version 4.1.6) - loaded.
+Module for hdf5 1.12.2:
+(HDF5 Library version 1.12.2) - loaded.
+Module for aws-cli 2.15.33:
+(AWS Command Line Interface version 2.15.33) - loaded.
+Module for libxc 6.2.2:
+(library of exchange-correlation functionals for density-functional theory version 6.2.2) - loaded.
+Module for python 3.11.8:
+(Python version 3.11.8) - loaded.
+
+Loading python/3.11.8
+  Loading requirement: gcc/13.1 openmpi/4.1.6-gcc13.1
+    hdf5/parallel/1.12.2-gcc13.1 aws-cli/2.15.33 libxc/6.2.2
+/opt/slurm-local/job20557059/slurm_script: line 108: 4129040 Killed                  "${VENV_DIR}/bin/python" run_mps_knn_one_from_config.py --config "${CONFIG_PATH}" --mode "${MODE}" --n-qubits "${N_QUBITS}" --bond-dim "${BOND_DIM}" --skip-if-done
+slurmstepd: error: Detected 1 oom_kill event in StepId=20557059.batch. Some of the step tasks have been OOM Killed.
